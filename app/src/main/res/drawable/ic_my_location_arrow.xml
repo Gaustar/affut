@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Flèche de position (orientée selon le cap) — orange chasse, contour blanc pour rester
+     lisible aussi bien sur les fonds verts (forêt) que sur les zones claires de la carte. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="42dp"
+    android:height="42dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M24,5 L40,42 L24,33 L8,42 Z"
+        android:fillColor="#FF6D00"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5" />
+</vector>

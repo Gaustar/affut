@@ -1,0 +1,18 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+google-services.json
+
+# Clé de signature release : jamais sur GitHub, sinon n'importe qui pourrait signer une
+# fausse "mise à jour" que l'app accepterait comme légitime. Voir keystore.properties.example.
+keystore.properties
+*.jks
+*.keystore

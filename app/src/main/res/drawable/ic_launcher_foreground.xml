@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Placeholder simple : triangle "A" — à remplacer par un vrai logo plus tard -->
+    <path
+        android:fillColor="#E8E0D0"
+        android:pathData="M54,28 L78,74 L30,74 Z" />
+</vector>
