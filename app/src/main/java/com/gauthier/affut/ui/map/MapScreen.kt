@@ -1,14 +1,17 @@
 package com.gauthier.affut.ui.map
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,6 +109,7 @@ fun MapScreen(
     val navigationTarget by viewModel.navigationTarget.collectAsState()
     val route by viewModel.route.collectAsState()
     val syncState by SyncStatus.state.collectAsState()
+    val availableUpdate by viewModel.availableUpdate.collectAsState()
     val isOnline = rememberIsOnline()
 
     var hasLocationPermission by remember {
@@ -379,6 +383,30 @@ fun MapScreen(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                             TextButton(onClick = viewModel::stopNavigation) { Text("Arrêter le guidage") }
+                        }
+                    }
+                }
+                availableUpdate?.let { update ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Mise à jour disponible (${update.versionLabel})",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(update.releaseUrl)),
+                                )
+                            }) { Text("Voir") }
+                            TextButton(onClick = viewModel::dismissUpdateNotice) { Text("Ignorer") }
                         }
                     }
                 }

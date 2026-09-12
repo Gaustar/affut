@@ -9,11 +9,14 @@ import com.gauthier.affut.data.routing.NavigationTargets
 import com.gauthier.affut.data.routing.OfflineRouter
 import com.gauthier.affut.data.repository.LiveShareRepository
 import com.gauthier.affut.data.repository.SpotRepository
+import com.gauthier.affut.data.repository.UpdateRepository
 import com.gauthier.affut.data.repository.WeatherRepository
+import com.gauthier.affut.domain.model.AppUpdate
 import com.gauthier.affut.domain.model.RoutePoint
 import com.gauthier.affut.domain.model.RouteResult
 import com.gauthier.affut.domain.model.Spot
 import com.gauthier.affut.domain.model.WeatherSnapshot
+import com.gauthier.affut.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,7 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val weatherRepository = WeatherRepository.create(application)
     private val liveShareRepository = LiveShareRepository.create(application)
     private val router = OfflineRouter(application)
+    private val updateRepository = UpdateRepository.create()
 
     val spots: StateFlow<List<Spot>> = repository.observeSpots()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -43,6 +47,21 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _weather = MutableStateFlow<WeatherSnapshot?>(null)
     val weather: StateFlow<WeatherSnapshot?> = _weather.asStateFlow()
+
+    private val _availableUpdate = MutableStateFlow<AppUpdate?>(null)
+    val availableUpdate: StateFlow<AppUpdate?> = _availableUpdate.asStateFlow()
+
+    init {
+        // Une fois par lancement : suffisant pour "voir la notification au prochain démarrage
+        // après une mise à jour publiée sur GitHub", sans justifier une vérification périodique.
+        viewModelScope.launch {
+            _availableUpdate.value = updateRepository.checkForUpdate(BuildConfig.VERSION_NAME)
+        }
+    }
+
+    fun dismissUpdateNotice() {
+        _availableUpdate.value = null
+    }
 
     /** Recalcule l'itinéraire depuis la position courante vers la destination choisie. */
     fun computeRoute(fromLatitude: Double, fromLongitude: Double) {
