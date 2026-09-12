@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /spots/{spotId} {
+      allow read: if isSignedIn() &&
+        (resource.data.ownerId == request.auth.uid || resource.data.isShared == true);
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /live/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+  }
+}
