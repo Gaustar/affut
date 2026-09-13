@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.gauthier.affut.ui.compass.CompassScreen
 import com.gauthier.affut.ui.forecast.ForecastScreen
+import com.gauthier.affut.ui.friends.FriendsGroupsScreen
 import com.gauthier.affut.ui.liveshare.LiveShareScreen
 import com.gauthier.affut.ui.map.MapScreen
 import com.gauthier.affut.ui.settings.SettingsScreen
@@ -28,6 +29,7 @@ object Routes {
     const val LIVE_SHARE = "live_share"
     const val SETTINGS = "settings"
     const val SPOT_LIST = "spot_list"
+    const val FRIENDS_GROUPS = "friends_groups"
 
     fun spotDetail(id: String) = "spot_detail/$id"
     fun forecastAt(lat: Double, lon: Double, label: String) = "forecast_at/$lat/$lon/${Uri.encode(label)}"
@@ -78,7 +80,13 @@ fun AppNavGraph(navController: NavHostController) {
             )
         }
         composable(Routes.SETTINGS) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenFriendsGroups = { navController.navigate(Routes.FRIENDS_GROUPS) },
+            )
+        }
+        composable(Routes.FRIENDS_GROUPS) {
+            FriendsGroupsScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.LIVE_SHARE) {
             LiveShareScreen(onBack = { navController.popBackStack() })

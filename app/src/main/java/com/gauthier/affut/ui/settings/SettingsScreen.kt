@@ -46,6 +46,7 @@ private val REGION_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPatte
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenFriendsGroups: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val regions by viewModel.regions.collectAsState()
@@ -110,6 +111,13 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+            }
+
+            item {
+                HorizontalDivider()
+                OutlinedButton(onClick = onOpenFriendsGroups, modifier = Modifier.fillMaxWidth()) {
+                    Text("Amis et groupes")
                 }
             }
 

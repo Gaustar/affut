@@ -10,7 +10,12 @@ data class Spot(
     val longitude: Double,
     val accuracy: Float,
     val notes: String,
-    val isShared: Boolean,
+    /** Amis et groupes choisis pour le partage — reflètent la sélection faite à l'écran. */
+    val sharedWithFriendIds: List<String> = emptyList(),
+    val sharedWithGroupIds: List<String> = emptyList(),
+    /** UID à jour au moment de l'enregistrement (amis + membres des groupes choisis, aplatis).
+     * C'est ce champ, pas les deux précédents, que lisent les règles Firestore. */
+    val sharedWithUids: List<String> = emptyList(),
     val createdAt: Long,
     val updatedAt: Long,
     /** Date de l'observation sur le terrain (bois de mue, champignons…), choisie par l'utilisateur. */

@@ -22,10 +22,10 @@ class FirestoreSpotDataSource(
         collection.document(spotId).delete().await()
     }
 
-    /** Mes spots + ceux que l'autre utilisateur a partagés. */
+    /** Mes spots + ceux partagés avec moi (amis ou groupes, aplatis dans sharedWithUids). */
     suspend fun fetchVisibleSpots(uid: String): List<SpotDto> {
         val snapshot = collection
-            .where(Filter.or(Filter.equalTo("ownerId", uid), Filter.equalTo("isShared", true)))
+            .where(Filter.or(Filter.equalTo("ownerId", uid), Filter.arrayContains("sharedWithUids", uid)))
             .get()
             .await()
         return snapshot.documents.mapNotNull { it.toObject(SpotDto::class.java) }

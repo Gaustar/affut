@@ -9,4 +9,5 @@ data class LivePositionDto(
     var accuracy: Float = 0f,
     var updatedAt: Long = 0,
     var expiresAt: Long = 0,
+    var sharedWithUids: List<String> = emptyList(),
 )

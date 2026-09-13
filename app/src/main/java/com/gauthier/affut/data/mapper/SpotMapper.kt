@@ -5,6 +5,9 @@ import com.gauthier.affut.data.remote.firebase.dto.SpotDto
 import com.gauthier.affut.domain.model.Spot
 import com.gauthier.affut.domain.model.SpotType
 
+private fun String.toIdList(): List<String> = if (isBlank()) emptyList() else split(",")
+private fun List<String>.toIdString(): String = joinToString(",")
+
 fun SpotEntity.toDomain(): Spot = Spot(
     id = id,
     ownerId = ownerId,
@@ -14,7 +17,9 @@ fun SpotEntity.toDomain(): Spot = Spot(
     longitude = longitude,
     accuracy = accuracy,
     notes = notes,
-    isShared = isShared,
+    sharedWithFriendIds = sharedWithFriendIds.toIdList(),
+    sharedWithGroupIds = sharedWithGroupIds.toIdList(),
+    sharedWithUids = sharedWithUids.toIdList(),
     createdAt = createdAt,
     updatedAt = updatedAt,
     observedAt = observedAt,
@@ -29,7 +34,9 @@ fun Spot.toEntity(): SpotEntity = SpotEntity(
     longitude = longitude,
     accuracy = accuracy,
     notes = notes,
-    isShared = isShared,
+    sharedWithFriendIds = sharedWithFriendIds.toIdString(),
+    sharedWithGroupIds = sharedWithGroupIds.toIdString(),
+    sharedWithUids = sharedWithUids.toIdString(),
     createdAt = createdAt,
     updatedAt = updatedAt,
     observedAt = observedAt,
@@ -44,7 +51,9 @@ fun SpotDto.toDomain(): Spot = Spot(
     longitude = longitude,
     accuracy = accuracy,
     notes = notes,
-    isShared = isShared,
+    sharedWithFriendIds = sharedWithFriendIds,
+    sharedWithGroupIds = sharedWithGroupIds,
+    sharedWithUids = sharedWithUids,
     createdAt = createdAt,
     updatedAt = updatedAt,
     observedAt = observedAt,
@@ -59,7 +68,9 @@ fun Spot.toDto(): SpotDto = SpotDto(
     longitude = longitude,
     accuracy = accuracy,
     notes = notes,
-    isShared = isShared,
+    sharedWithFriendIds = sharedWithFriendIds,
+    sharedWithGroupIds = sharedWithGroupIds,
+    sharedWithUids = sharedWithUids,
     createdAt = createdAt,
     updatedAt = updatedAt,
     observedAt = observedAt,

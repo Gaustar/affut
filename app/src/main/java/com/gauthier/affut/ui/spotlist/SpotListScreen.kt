@@ -157,7 +157,7 @@ private fun SpotRow(entry: SpotListEntry, onClick: () -> Unit) {
                     append(spot.type.label)
                     spot.observedAt?.let { append(" · observé le ${formatObservedDate(it)}") }
                     entry.distanceMeters?.let { append(" · ${formatDistance(it)}") }
-                    if (spot.isShared) append(" · partagé")
+                    if (spot.sharedWithUids.isNotEmpty()) append(" · partagé")
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

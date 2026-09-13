@@ -14,7 +14,10 @@ data class SpotEntity(
     val longitude: Double,
     val accuracy: Float,
     val notes: String,
-    val isShared: Boolean,
+    /** UID séparés par des virgules — pas de TypeConverter Room, comme pour les blobs JSON météo. */
+    val sharedWithFriendIds: String = "",
+    val sharedWithGroupIds: String = "",
+    val sharedWithUids: String = "",
     val createdAt: Long,
     val updatedAt: Long,
     val observedAt: Long? = null,

@@ -7,14 +7,45 @@ service cloud.firestore {
 
     match /spots/{spotId} {
       allow read: if isSignedIn() &&
-        (resource.data.ownerId == request.auth.uid || resource.data.isShared == true);
+        (resource.data.ownerId == request.auth.uid ||
+          request.auth.uid in resource.data.sharedWithUids);
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /live/{uid} {
+      allow read: if isSignedIn() &&
+        (uid == request.auth.uid || request.auth.uid in resource.data.sharedWithUids);
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Profil minimal (nom affiché, code ami) — lisible par tout compte connecté : nécessaire
+    // pour retrouver quelqu'un par son code et afficher son nom dans les listes d'amis/groupes.
+    match /users/{uid} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Amitié mutuelle en un seul document : l'id est les deux UID triés, donc n'importe
+    // lequel des deux comptes peut créer/lire/supprimer la relation (voir friendshipDocId côté app).
+    match /friendships/{friendshipId} {
+      allow read, delete: if isSignedIn() &&
+        (resource.data.uidA == request.auth.uid || resource.data.uidB == request.auth.uid);
+      allow create: if isSignedIn() &&
+        (request.resource.data.uidA == request.auth.uid || request.resource.data.uidB == request.auth.uid);
+    }
+
+    // Groupes ouverts, sans administrateur : quiconque connaît le code peut lire le groupe et
+    // rejoindre (créer son propre document de membre) ; renommer/dissoudre un groupe n'est pas
+    // pris en charge pour l'instant (pas de "update"/"delete" sur le groupe lui-même).
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+
+      match /members/{uid} {
+        allow read: if isSignedIn();
+        allow create, delete: if isSignedIn() && request.auth.uid == uid;
+      }
     }
   }
 }

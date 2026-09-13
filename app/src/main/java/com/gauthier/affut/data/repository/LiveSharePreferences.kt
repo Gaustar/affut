@@ -18,6 +18,13 @@ class LiveSharePreferences(context: Context) {
         get() = prefs.getLong(KEY_LAST_SENT_AT, 0L)
         set(value) = prefs.edit().putLong(KEY_LAST_SENT_AT, value).apply()
 
+    /** Portée choisie au démarrage du partage, relue à chaque envoi de position (le service
+     * tourne indépendamment de l'écran et n'a que ces préférences pour se souvenir à qui envoyer). */
+    var sharedWithUids: List<String>
+        get() = prefs.getString(KEY_SHARED_WITH_UIDS, "")
+            .let { if (it.isNullOrBlank()) emptyList() else it.split(",") }
+        set(value) = prefs.edit().putString(KEY_SHARED_WITH_UIDS, value.joinToString(",")).apply()
+
     fun savePendingPosition(latitude: Double, longitude: Double, accuracy: Float, updatedAt: Long) {
         prefs.edit()
             .putFloat(KEY_PENDING_LAT, latitude.toFloat())
@@ -58,6 +65,7 @@ class LiveSharePreferences(context: Context) {
         const val KEY_IS_ACTIVE = "is_active"
         const val KEY_EXPIRES_AT = "expires_at"
         const val KEY_LAST_SENT_AT = "last_sent_at"
+        const val KEY_SHARED_WITH_UIDS = "shared_with_uids"
         const val KEY_HAS_PENDING = "has_pending"
         const val KEY_PENDING_LAT = "pending_lat"
         const val KEY_PENDING_LON = "pending_lon"

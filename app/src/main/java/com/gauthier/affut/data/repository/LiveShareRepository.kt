@@ -22,9 +22,10 @@ class LiveShareRepository(
     /** true quand un envoi a échoué et que la position attend toujours de partir. */
     val hasUnsentPosition: Boolean get() = preferences.getPendingPosition() != null
 
-    fun start(durationMillis: Long) {
+    fun start(durationMillis: Long, sharedWithUids: List<String>) {
         preferences.isActive = true
         preferences.expiresAt = System.currentTimeMillis() + durationMillis
+        preferences.sharedWithUids = sharedWithUids
         LiveShareForegroundService.start(context)
     }
 
@@ -53,6 +54,7 @@ class LiveShareRepository(
             accuracy = accuracy,
             updatedAt = now,
             expiresAt = preferences.expiresAt,
+            sharedWithUids = preferences.sharedWithUids,
         )
         try {
             remoteDataSource.push(position)

@@ -48,7 +48,7 @@ class SyncRepository(
         // Spots supprimés côté serveur (par l'autre utilisateur ou une autre synchro) : on les retire
         // localement, sauf modification locale pas encore envoyée (elle partira au prochain push).
         spotDao.getAllOnce()
-            .filter { (it.ownerId == uid || it.isShared) && it.id !in remoteIds && !it.pendingSync }
+            .filter { (it.ownerId == uid || uid in it.sharedWithUids.split(",")) && it.id !in remoteIds && !it.pendingSync }
             .forEach { spotDao.delete(it.id) }
     }
 }

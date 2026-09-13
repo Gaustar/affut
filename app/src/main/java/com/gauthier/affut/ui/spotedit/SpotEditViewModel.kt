@@ -3,9 +3,13 @@ package com.gauthier.affut.ui.spotedit
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.gauthier.affut.data.repository.FriendRepository
+import com.gauthier.affut.data.repository.GroupRepository
 import com.gauthier.affut.data.repository.SpotRepository
+import com.gauthier.affut.domain.model.Group
 import com.gauthier.affut.domain.model.Spot
 import com.gauthier.affut.domain.model.SpotType
+import com.gauthier.affut.domain.model.UserProfile
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,14 +22,17 @@ data class SpotEditUiState(
     val title: String = "",
     val type: SpotType = SpotType.AUTRE,
     val notes: String = "",
-    val isShared: Boolean = false,
+    val availableFriends: List<UserProfile> = emptyList(),
+    val availableGroups: List<Group> = emptyList(),
+    val selectedFriendIds: Set<String> = emptySet(),
+    val selectedGroupIds: Set<String> = emptySet(),
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val observedAt: Long? = null,
     val isEditing: Boolean = false,
     val isLoading: Boolean = true,
     val isSaved: Boolean = false,
-    /** Le spot à modifier n'existe plus (supprimé entre-temps, ici ou par l'autre utilisateur). */
+    /** Le spot à modifier n'existe plus (supprimé entre-temps, ici ou par un autre utilisateur). */
     val isMissing: Boolean = false,
 )
 
@@ -37,6 +44,8 @@ class SpotEditViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = SpotRepository.create(application)
+    private val friendRepository = FriendRepository.create()
+    private val groupRepository = GroupRepository.create()
 
     private val _uiState = MutableStateFlow(
         SpotEditUiState(
@@ -51,6 +60,14 @@ class SpotEditViewModel(
     private var existingSpot: Spot? = null
 
     init {
+        viewModelScope.launch {
+            // Chargés en parallèle logique : n'empêchent pas le formulaire de s'afficher
+            // si l'un des deux échoue (ex: hors-ligne) — la portée sera juste vide.
+            val friends = runCatching { friendRepository.listFriends() }.getOrDefault(emptyList())
+            val groups = runCatching { groupRepository.listMyGroups() }.getOrDefault(emptyList())
+            _uiState.value = _uiState.value.copy(availableFriends = friends, availableGroups = groups)
+        }
+
         if (editingSpotId != null) {
             viewModelScope.launch {
                 val spot = repository.getById(editingSpotId)
@@ -60,7 +77,8 @@ class SpotEditViewModel(
                         title = spot.title,
                         type = spot.type,
                         notes = spot.notes,
-                        isShared = spot.isShared,
+                        selectedFriendIds = spot.sharedWithFriendIds.toSet(),
+                        selectedGroupIds = spot.sharedWithGroupIds.toSet(),
                         latitude = spot.latitude,
                         longitude = spot.longitude,
                         observedAt = spot.observedAt,
@@ -85,8 +103,18 @@ class SpotEditViewModel(
         _uiState.value = _uiState.value.copy(notes = value)
     }
 
-    fun onSharedChange(value: Boolean) {
-        _uiState.value = _uiState.value.copy(isShared = value)
+    fun onFriendToggle(uid: String) {
+        val current = _uiState.value.selectedFriendIds
+        _uiState.value = _uiState.value.copy(
+            selectedFriendIds = if (uid in current) current - uid else current + uid,
+        )
+    }
+
+    fun onGroupToggle(groupId: String) {
+        val current = _uiState.value.selectedGroupIds
+        _uiState.value = _uiState.value.copy(
+            selectedGroupIds = if (groupId in current) current - groupId else current + groupId,
+        )
     }
 
     fun onObservedAtChange(value: Long?) {
@@ -101,6 +129,9 @@ class SpotEditViewModel(
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             val ownerId = Firebase.auth.currentUser?.uid ?: "inconnu"
+            val friendIds = state.selectedFriendIds.toList()
+            val groupIds = state.selectedGroupIds.toList()
+            val sharedWithUids = groupRepository.resolveSharedUids(friendIds, groupIds)
             val spot = Spot(
                 id = existingSpot?.id ?: editingSpotId ?: UUID.randomUUID().toString(),
                 ownerId = existingSpot?.ownerId ?: ownerId,
@@ -110,7 +141,9 @@ class SpotEditViewModel(
                 longitude = state.longitude,
                 accuracy = existingSpot?.accuracy ?: 0f,
                 notes = state.notes.trim(),
-                isShared = state.isShared,
+                sharedWithFriendIds = friendIds,
+                sharedWithGroupIds = groupIds,
+                sharedWithUids = sharedWithUids,
                 createdAt = existingSpot?.createdAt ?: now,
                 updatedAt = now,
                 observedAt = state.observedAt,

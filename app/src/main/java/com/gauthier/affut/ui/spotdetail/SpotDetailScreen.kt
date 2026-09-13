@@ -93,7 +93,8 @@ fun SpotDetailScreen(
             if (current.notes.isNotBlank()) {
                 Text(current.notes)
             }
-            Text(if (current.isShared) "Partagé" else "Privé")
+            val shareCount = current.sharedWithFriendIds.size + current.sharedWithGroupIds.size
+            Text(if (shareCount > 0) "Partagé (avec $shareCount ami·e·s/groupe·s)" else "Privé")
 
             weatherError?.let { message ->
                 if (weather == null) {

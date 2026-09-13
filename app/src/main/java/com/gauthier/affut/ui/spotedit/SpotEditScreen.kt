@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -43,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.gauthier.affut.domain.model.SpotType
+import com.gauthier.affut.ui.sharing.ShareScopePicker
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -164,10 +164,14 @@ fun SpotEditScreen(
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = state.isShared, onCheckedChange = viewModel::onSharedChange)
-                Text("Partagé avec l'autre utilisateur")
-            }
+            ShareScopePicker(
+                friends = state.availableFriends,
+                groups = state.availableGroups,
+                selectedFriendIds = state.selectedFriendIds,
+                selectedGroupIds = state.selectedGroupIds,
+                onFriendToggle = viewModel::onFriendToggle,
+                onGroupToggle = viewModel::onGroupToggle,
+            )
 
             Text(
                 // Locale.US : en français, "%.5f" produirait "49,79498, 5,00084" — virgule

@@ -20,7 +20,7 @@ class FirestoreLiveDataSource(
         collection.document(position.uid).set(position).await()
     }
 
-    /** Documents actifs des AUTRES utilisateurs (jamais le mien). */
+    /** Documents actifs des AUTRES utilisateurs qui m'ont inclus dans leur partage (jamais le mien). */
     fun observeOtherActiveShares(myUid: String): Flow<List<LivePositionDto>> = callbackFlow {
         val registration = collection
             .whereEqualTo("isActive", true)
@@ -31,7 +31,7 @@ class FirestoreLiveDataSource(
                 }
                 val positions = snapshot?.documents
                     ?.mapNotNull { it.toObject(LivePositionDto::class.java) }
-                    ?.filter { it.uid != myUid }
+                    ?.filter { it.uid != myUid && myUid in it.sharedWithUids }
                     .orEmpty()
                 trySend(positions)
             }

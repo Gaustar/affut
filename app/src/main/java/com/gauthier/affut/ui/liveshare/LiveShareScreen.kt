@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,8 +39,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gauthier.affut.data.remote.firebase.dto.LivePositionDto
+import com.gauthier.affut.data.repository.UserRepository
 import com.gauthier.affut.data.routing.NavigationTarget
 import com.gauthier.affut.data.routing.NavigationTargets
+import com.gauthier.affut.ui.sharing.ShareScopePicker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,8 +55,12 @@ fun LiveShareScreen(
     val isActive by viewModel.isActive.collectAsState()
     val expiresAt by viewModel.expiresAt.collectAsState()
     val lastSentAt by viewModel.lastSentAt.collectAsState()
-    val friendPosition by viewModel.friendPosition.collectAsState()
+    val friendPositions by viewModel.friendPositions.collectAsState()
     val hasUnsentPosition by viewModel.hasUnsentPosition.collectAsState()
+    val availableFriends by viewModel.availableFriends.collectAsState()
+    val availableGroups by viewModel.availableGroups.collectAsState()
+    val selectedFriendIds by viewModel.selectedFriendIds.collectAsState()
+    val selectedGroupIds by viewModel.selectedGroupIds.collectAsState()
 
     var selectedDuration by remember { mutableStateOf(SHARE_DURATIONS[1]) }
     var permissionDeniedMessage by remember { mutableStateOf<String?>(null) }
@@ -128,8 +136,8 @@ fun LiveShareScreen(
                 if (hasUnsentPosition) {
                     Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "Dernière position non envoyée : ton ami ne te voit pas bouger. " +
-                                "L'envoi reprendra automatiquement au retour du réseau.",
+                            "Dernière position non envoyée : les personnes avec qui tu partages ne te " +
+                                "voient pas bouger. L'envoi reprendra automatiquement au retour du réseau.",
                             modifier = Modifier.padding(12.dp),
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodySmall,
@@ -180,9 +188,18 @@ fun LiveShareScreen(
                     }
                 }
 
+                ShareScopePicker(
+                    friends = availableFriends,
+                    groups = availableGroups,
+                    selectedFriendIds = selectedFriendIds,
+                    selectedGroupIds = selectedGroupIds,
+                    onFriendToggle = viewModel::onFriendToggle,
+                    onGroupToggle = viewModel::onGroupToggle,
+                )
+
                 Text(
-                    "Ta position sera visible par l'autre utilisateur pendant toute la durée choisie. " +
-                        "Aucun historique n'est conservé, seule ta dernière position est partagée.",
+                    "Ta position sera visible par les amis et groupes choisis pendant toute la durée " +
+                        "sélectionnée. Aucun historique n'est conservé, seule ta dernière position est partagée.",
                     style = MaterialTheme.typography.bodySmall,
                 )
 
@@ -191,31 +208,40 @@ fun LiveShareScreen(
                 }
             }
 
-            friendPosition?.let { friend ->
-                Surface(color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("Position de ton ami partagée", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "Dernière mise à jour : il y a ${((System.currentTimeMillis() - friend.updatedAt) / 60_000L).coerceAtLeast(0)} min",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        Button(
-                            onClick = {
-                                NavigationTargets.start(
-                                    NavigationTarget(friend.latitude, friend.longitude, "ton ami"),
-                                )
-                                onBack()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Le rejoindre")
-                        }
-                    }
-                }
+            friendPositions.forEach { friend ->
+                FriendPositionCard(friend = friend, onJoined = onBack)
             }
 
             OutlinedButton(onClick = viewModel::refreshState, modifier = Modifier.fillMaxWidth()) {
                 Text("Actualiser l'état")
+            }
+        }
+    }
+}
+
+@Composable
+private fun FriendPositionCard(friend: LivePositionDto, onJoined: () -> Unit) {
+    val userRepository = remember { UserRepository.create() }
+    val displayName by produceState(initialValue = friend.uid, friend.uid) {
+        value = userRepository.getDisplayName(friend.uid)
+    }
+    Surface(color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text("Position de $displayName partagée", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Dernière mise à jour : il y a ${((System.currentTimeMillis() - friend.updatedAt) / 60_000L).coerceAtLeast(0)} min",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Button(
+                onClick = {
+                    NavigationTargets.start(
+                        NavigationTarget(friend.latitude, friend.longitude, displayName),
+                    )
+                    onJoined()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Le rejoindre")
             }
         }
     }
