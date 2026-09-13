@@ -99,4 +99,5 @@ dependencies {
     implementation(libs.osmdroid.android)
     implementation(libs.play.services.location)
     debugImplementation(libs.androidx.ui.tooling)
+    testImplementation(libs.junit)
 }
