@@ -20,10 +20,15 @@ class FirestoreLiveDataSource(
         collection.document(position.uid).set(position).await()
     }
 
-    /** Documents actifs des AUTRES utilisateurs qui m'ont inclus dans leur partage (jamais le mien). */
+    /** Documents actifs des AUTRES utilisateurs qui m'ont inclus dans leur partage (jamais le mien).
+     * Filtre sur sharedWithUids (array-contains) plutôt que isActive : une règle Firestore ne peut
+     * pas restreindre une requête de LISTE sur un champ que la requête elle-même ne contraint pas
+     * ("Missing or insufficient permissions" sur toute la requête, pas un filtrage document par
+     * document) — il faut que la requête et la règle portent sur le même champ. isActive/expiresAt
+     * restent filtrés côté client, comme avant. */
     fun observeOtherActiveShares(myUid: String): Flow<List<LivePositionDto>> = callbackFlow {
         val registration = collection
-            .whereEqualTo("isActive", true)
+            .whereArrayContains("sharedWithUids", myUid)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     trySend(emptyList())

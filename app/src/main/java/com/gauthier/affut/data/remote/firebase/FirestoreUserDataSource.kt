@@ -1,6 +1,7 @@
 package com.gauthier.affut.data.remote.firebase
 
 import com.gauthier.affut.data.remote.firebase.dto.UserProfileDto
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -41,6 +42,16 @@ class FirestoreUserDataSource(
         )
         collection.document(uid).set(profile).await()
         return profile
+    }
+
+    suspend fun getGroupIds(uid: String): List<String> = getProfile(uid)?.groupIds ?: emptyList()
+
+    suspend fun addGroupId(uid: String, groupId: String) {
+        collection.document(uid).update("groupIds", FieldValue.arrayUnion(groupId)).await()
+    }
+
+    suspend fun removeGroupId(uid: String, groupId: String) {
+        collection.document(uid).update("groupIds", FieldValue.arrayRemove(groupId)).await()
     }
 
     private fun randomCode(): String =

@@ -59,16 +59,6 @@ class FirestoreGroupDataSource(
         return snapshot.documents.map { it.id }
     }
 
-    /** Tous les groupes dont je suis membre, en interrogeant la sous-collection "members" à travers tous les groupes. */
-    suspend fun listMyGroups(uid: String): List<GroupDto> {
-        val membershipDocs = firestore.collectionGroup(MEMBERS_SUBCOLLECTION)
-            .whereEqualTo("uid", uid)
-            .get()
-            .await()
-        val groupIds = membershipDocs.documents.mapNotNull { it.reference.parent.parent?.id }
-        return groupIds.mapNotNull { getGroup(it) }
-    }
-
     private fun randomCode(): String =
         (1..CODE_LENGTH).map { CODE_CHARS[Random.nextInt(CODE_CHARS.length)] }.joinToString("")
 }

@@ -1,17 +1,20 @@
 package com.gauthier.affut.data.repository
 
 import com.gauthier.affut.data.remote.firebase.FirestoreGroupDataSource
+import com.gauthier.affut.data.remote.firebase.FirestoreUserDataSource
 import com.gauthier.affut.domain.model.Group
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 class GroupRepository(
     private val remoteDataSource: FirestoreGroupDataSource = FirestoreGroupDataSource(),
+    private val userDataSource: FirestoreUserDataSource = FirestoreUserDataSource(),
 ) {
     suspend fun createGroup(name: String): Result<Group> {
         val myUid = Firebase.auth.currentUser?.uid
             ?: return Result.failure(IllegalStateException("Non connecté"))
         val dto = remoteDataSource.createGroup(name.trim(), myUid)
+        userDataSource.addGroupId(myUid, dto.id)
         return Result.success(Group(dto.id, dto.name, dto.code, dto.createdBy, memberCount = 1))
     }
 
@@ -21,6 +24,7 @@ class GroupRepository(
         val dto = remoteDataSource.findByCode(code.trim().uppercase())
             ?: return Result.failure(NoSuchElementException("Aucun groupe avec ce code"))
         remoteDataSource.joinGroup(dto.id, myUid)
+        userDataSource.addGroupId(myUid, dto.id)
         val memberCount = remoteDataSource.listMemberUids(dto.id).size
         return Result.success(Group(dto.id, dto.name, dto.code, dto.createdBy, memberCount))
     }
@@ -28,12 +32,20 @@ class GroupRepository(
     suspend fun leaveGroup(groupId: String) {
         val myUid = Firebase.auth.currentUser?.uid ?: return
         remoteDataSource.leaveGroup(groupId, myUid)
+        userDataSource.removeGroupId(myUid, groupId)
     }
 
+    /** Dénormalisé sur mon propre profil (users/{uid}.groupIds) plutôt que retrouvé par une
+     * requête collectionGroup sur "members" à travers tous les groupes : Firestore refuse une
+     * requête de LISTE dont la règle dépend d'un champ que la requête ne contraint pas elle-même
+     * (même souci que le partage de position, voir FirestoreLiveDataSource) — testé en conditions
+     * réelles le 2026-09-13 : "Missing or insufficient permissions" sur la requête entière. */
     suspend fun listMyGroups(): List<Group> {
         val myUid = Firebase.auth.currentUser?.uid ?: return emptyList()
-        return remoteDataSource.listMyGroups(myUid).map { dto ->
-            val memberCount = remoteDataSource.listMemberUids(dto.id).size
+        val groupIds = userDataSource.getGroupIds(myUid)
+        return groupIds.mapNotNull { id ->
+            val dto = remoteDataSource.getGroup(id) ?: return@mapNotNull null
+            val memberCount = remoteDataSource.listMemberUids(id).size
             Group(dto.id, dto.name, dto.code, dto.createdBy, memberCount)
         }
     }
