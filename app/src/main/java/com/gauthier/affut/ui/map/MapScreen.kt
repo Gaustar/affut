@@ -14,10 +14,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShareLocation
+import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
@@ -135,6 +148,7 @@ fun MapScreen(
     var locationOverlay by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
     var showOfflineDialog by remember { mutableStateOf(false) }
     var showLegendDialog by remember { mutableStateOf(false) }
+    var offlineBannerDismissed by remember { mutableStateOf(false) }
     var weatherLocation by remember { mutableStateOf<GeoPoint?>(null) }
     // Ne centre/zoome automatiquement qu'une fois, pour ne pas gêner une navigation manuelle ultérieure sur la carte.
     var hasAutoZoomed by remember { mutableStateOf(false) }
@@ -213,12 +227,24 @@ fun MapScreen(
                 // minimale de TextButton écrasait le titre au point de le faire passer à la ligne
                 // lettre par lettre.
                 actions = {
-                    IconButton(onClick = onOpenSpotList) { Text("📋") }
-                    IconButton(onClick = onOpenSettings) { Text("⚙️") }
-                    IconButton(onClick = { showLegendDialog = true }) { Text("🎨") }
-                    IconButton(onClick = onOpenLiveShare) { Text("📡") }
-                    IconButton(onClick = onOpenCompass) { Text("🧭") }
-                    IconButton(onClick = onOpenForecast) { Text("🌦️") }
+                    IconButton(onClick = onOpenSpotList) {
+                        Icon(Icons.Filled.List, contentDescription = "Liste des spots")
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Paramètres")
+                    }
+                    IconButton(onClick = { showLegendDialog = true }) {
+                        Icon(Icons.Filled.Palette, contentDescription = "Légende des spots")
+                    }
+                    IconButton(onClick = onOpenLiveShare) {
+                        Icon(Icons.Filled.ShareLocation, contentDescription = "Partage de position")
+                    }
+                    IconButton(onClick = onOpenCompass) {
+                        Icon(Icons.Filled.Explore, contentDescription = "Boussole")
+                    }
+                    IconButton(onClick = onOpenForecast) {
+                        Icon(Icons.Filled.WbCloudy, contentDescription = "Prévisions météo")
+                    }
                 },
             )
         },
@@ -227,18 +253,26 @@ fun MapScreen(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                FloatingActionButton(
+                // Actions secondaires, en petit : ponctuelles, pas l'action principale de l'écran.
+                SmallFloatingActionButton(
                     onClick = {
                         locationOverlay?.myLocation?.let { location ->
-                            val map = mapViewRef ?: return@FloatingActionButton
+                            val map = mapViewRef ?: return@SmallFloatingActionButton
                             val targetZoom = maxOf(map.zoomLevelDouble, FOCUSED_ZOOM)
                             map.controller.animateTo(location, targetZoom, null)
                         }
                     },
                 ) {
-                    Text("📍")
+                    Icon(Icons.Filled.MyLocation, contentDescription = "Centrer sur ma position")
                 }
-                FloatingActionButton(
+                SmallFloatingActionButton(
+                    onClick = { showOfflineDialog = true },
+                ) {
+                    Icon(Icons.Filled.Download, contentDescription = "Cartes hors-ligne")
+                }
+                // Action principale de l'écran (créer un spot) : seule en FAB étendu, pour qu'elle
+                // ressorte clairement des deux actions secondaires ci-dessus.
+                ExtendedFloatingActionButton(
                     onClick = {
                         val center = locationOverlay?.myLocation ?: mapViewRef?.mapCenter
                         onCreateSpot(
@@ -246,14 +280,9 @@ fun MapScreen(
                             center?.longitude ?: DEFAULT_CENTER.longitude,
                         )
                     },
-                ) {
-                    Text("➕")
-                }
-                FloatingActionButton(
-                    onClick = { showOfflineDialog = true },
-                ) {
-                    Text("⬇️")
-                }
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text("Nouveau spot") },
+                )
             }
         },
     ) { innerPadding ->
@@ -423,17 +452,29 @@ fun MapScreen(
                         )
                     }
                 }
-                if (!isOnline) {
+                // L'app est prévue pour être utilisée hors connexion (forêt) : un bandeau plein
+                // écran non fermable serait presque toujours affiché. Fermable une fois vu, et
+                // réapparaît si on repasse en ligne puis à nouveau hors ligne (nouvel événement).
+                LaunchedEffect(isOnline) {
+                    if (isOnline) offlineBannerDismissed = false
+                }
+                if (!isOnline && !offlineBannerDismissed) {
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(
-                            "Hors connexion — les zones non téléchargées peuvent ne pas s'afficher.",
-                            modifier = Modifier.padding(8.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                        )
+                        Row(
+                            modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Hors connexion — les zones non téléchargées peuvent ne pas s'afficher.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { offlineBannerDismissed = true }) { Text("Ignorer") }
+                        }
                     }
                 }
                 weather?.let {

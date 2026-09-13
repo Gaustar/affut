@@ -14,6 +14,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -72,7 +75,11 @@ fun ForecastScreen(
         topBar = {
             TopAppBar(
                 title = { Text(placeLabel ?: "Prévisions") },
-                navigationIcon = { IconButton(onClick = onBack) { Text("←") } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                    }
+                },
                 actions = { IconButton(onClick = viewModel::refresh) { Text("🔄") } },
             )
         },
@@ -191,17 +198,21 @@ private fun HourRow(hour: HourlyForecast) {
         Text(label, modifier = Modifier.width(44.dp), style = MaterialTheme.typography.bodyMedium)
         Text(if (hour.isDay) weatherEmoji(hour.weatherCode) else "🌙")
         Column(modifier = Modifier.fillMaxWidth()) {
+            // Ligne essentielle : ce qu'on regarde d'un coup d'œil avant de partir ou en route.
             Text(
-                "${hour.temperature.roundToInt()}°C (ressenti ${hour.apparentTemperature.roundToInt()}°) · " +
-                    "${hour.cloudCoverPercent}% nuages",
+                "${hour.temperature.roundToInt()}°C · Pluie ${hour.precipitationProbability}%",
                 style = MaterialTheme.typography.bodyMedium,
             )
+            // Détails secondaires, démarqués visuellement (plus petit, plus discret) —
+            // utiles mais pas ce qu'on doit lire en premier sur 24 lignes empilées.
             Text(
-                "Vent ${hour.windSpeedKmh.roundToInt()} km/h " +
+                "Ressenti ${hour.apparentTemperature.roundToInt()}° · " +
+                    "Vent ${hour.windSpeedKmh.roundToInt()} km/h " +
                     "(raf. ${hour.windGustKmh.roundToInt()}) ${windDirectionLabel(hour.windDirectionDeg)} · " +
-                    "Pluie ${hour.precipitationProbability}% (${formatMm(hour.precipitationMm)}) · " +
+                    "${formatMm(hour.precipitationMm)} · ${hour.cloudCoverPercent}% nuages · " +
                     "Hum. ${hour.humidityPercent}% · Vis. ${formatVisibility(hour.visibilityMeters)}",
                 style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
