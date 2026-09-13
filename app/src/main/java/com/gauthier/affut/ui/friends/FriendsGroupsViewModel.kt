@@ -23,6 +23,15 @@ class FriendsGroupsViewModel(application: Application) : AndroidViewModel(applic
     private val _myProfile = MutableStateFlow<UserProfile?>(null)
     val myProfile: StateFlow<UserProfile?> = _myProfile.asStateFlow()
 
+    private val _isSignedIn = MutableStateFlow(Firebase.auth.currentUser != null)
+    val isSignedIn: StateFlow<Boolean> = _isSignedIn.asStateFlow()
+
+    /** true si on est connecté mais que la création/lecture du profil a échoué (hors-ligne,
+     * Firestore injoignable...) — distinct de "non connecté", pour ne pas laisser l'écran
+     * bloqué en silence sur "…" sans jamais expliquer pourquoi ni proposer de réessayer. */
+    private val _profileLoadFailed = MutableStateFlow(false)
+    val profileLoadFailed: StateFlow<Boolean> = _profileLoadFailed.asStateFlow()
+
     private val _friends = MutableStateFlow<List<UserProfile>>(emptyList())
     val friends: StateFlow<List<UserProfile>> = _friends.asStateFlow()
 
@@ -33,13 +42,26 @@ class FriendsGroupsViewModel(application: Application) : AndroidViewModel(applic
     val message: StateFlow<String?> = _message.asStateFlow()
 
     init {
+        loadProfile()
+        refresh()
+    }
+
+    private fun loadProfile() {
+        val user = Firebase.auth.currentUser
+        _isSignedIn.value = user != null
+        if (user == null) return
         viewModelScope.launch {
-            val user = Firebase.auth.currentUser
-            if (user != null) {
-                _myProfile.value = runCatching { userRepository.ensureProfile(user) }.getOrNull()
-            }
-            refresh()
+            _profileLoadFailed.value = false
+            val result = runCatching { userRepository.ensureProfile(user) }
+            _myProfile.value = result.getOrNull()
+            _profileLoadFailed.value = result.isFailure
         }
+    }
+
+    /** Relance la création/lecture du profil après un échec (hors-ligne, etc.) — sans ça,
+     * l'écran restait bloqué sur "…" sans jamais donner de moyen de s'en sortir. */
+    fun retryProfile() {
+        loadProfile()
     }
 
     fun refresh() {

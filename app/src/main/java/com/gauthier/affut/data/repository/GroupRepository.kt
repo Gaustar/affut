@@ -48,9 +48,16 @@ class GroupRepository(
     /** Aplatit une portée de partage (amis + groupes) en une simple liste d'UID, dénormalisée
      * au moment de l'enregistrement. Un membre qui quitte un groupe après coup ne perd pas
      * rétroactivement l'accès aux spots déjà partagés — limite connue, acceptée pour rester
-     * simple (pas de fonction serveur pour recalculer ça en tâche de fond). */
+     * simple (pas de fonction serveur pour recalculer ça en tâche de fond).
+     *
+     * Hors-ligne (ou tout autre échec Firestore), un groupe ne peut pas être résolu : plutôt
+     * que de faire planter l'enregistrement (justement l'inverse de "hors-ligne d'abord"), on
+     * dégrade en gardant les amis individuels déjà connus localement, et on ignore ce groupe
+     * pour cette fois — le prochain enregistrement du spot le résoudra si le réseau revient. */
     suspend fun resolveSharedUids(friendIds: List<String>, groupIds: List<String>): List<String> {
-        val fromGroups = groupIds.flatMap { listMemberUids(it) }
+        val fromGroups = groupIds.flatMap { groupId ->
+            runCatching { listMemberUids(groupId) }.getOrDefault(emptyList())
+        }
         return (friendIds + fromGroups).distinct()
     }
 

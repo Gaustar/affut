@@ -9,17 +9,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import com.gauthier.affut.data.repository.FriendRepository
 import com.gauthier.affut.data.repository.GroupRepository
+import com.gauthier.affut.data.repository.UserRepository
 import com.gauthier.affut.data.routing.NavigationTarget
 import com.gauthier.affut.data.routing.NavigationTargets
 import com.gauthier.affut.ui.common.DeerActivityBadge
@@ -72,7 +76,16 @@ fun SpotDetailScreen(
     val current = spot
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(current?.title ?: "Spot") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(current?.title ?: "Spot") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                    }
+                },
+            )
+        },
     ) { padding ->
         if (current == null) {
             Box(
@@ -176,11 +189,13 @@ private fun SharedWithLabel(friendIds: List<String>, groupIds: List<String>) {
         Text("Privé")
         return
     }
-    val friendRepository = remember { FriendRepository.create() }
+    val userRepository = remember { UserRepository.create() }
     val groupRepository = remember { GroupRepository.create() }
+    // Résout toujours le nom réel (via le profil), même pour un ami retiré depuis — son accès
+    // au spot persiste tant qu'il n'est pas réenregistré (voir GroupRepository.resolveSharedUids),
+    // le masquer silencieusement ferait croire à un partage plus restreint qu'il ne l'est.
     val names by produceState(initialValue = "…", friendIds, groupIds) {
-        val allFriends = runCatching { friendRepository.listFriends() }.getOrDefault(emptyList())
-        val friendNames = friendIds.mapNotNull { id -> allFriends.firstOrNull { it.uid == id }?.displayName }
+        val friendNames = friendIds.map { userRepository.getDisplayName(it) }
         val groupNames = groupIds.map { runCatching { groupRepository.getGroupName(it) }.getOrDefault(it.take(6)) }
         value = (friendNames + groupNames).joinToString(", ")
     }
