@@ -18,6 +18,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import com.gauthier.affut.data.repository.FriendRepository
+import com.gauthier.affut.data.repository.GroupRepository
 import com.gauthier.affut.data.routing.NavigationTarget
 import com.gauthier.affut.data.routing.NavigationTargets
 import com.gauthier.affut.ui.common.DeerActivityBadge
@@ -32,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -93,8 +96,7 @@ fun SpotDetailScreen(
             if (current.notes.isNotBlank()) {
                 Text(current.notes)
             }
-            val shareCount = current.sharedWithFriendIds.size + current.sharedWithGroupIds.size
-            Text(if (shareCount > 0) "Partagé (avec $shareCount ami·e·s/groupe·s)" else "Privé")
+            SharedWithLabel(friendIds = current.sharedWithFriendIds, groupIds = current.sharedWithGroupIds)
 
             weatherError?.let { message ->
                 if (weather == null) {
@@ -166,4 +168,21 @@ fun SpotDetailScreen(
             },
         )
     }
+}
+
+@Composable
+private fun SharedWithLabel(friendIds: List<String>, groupIds: List<String>) {
+    if (friendIds.isEmpty() && groupIds.isEmpty()) {
+        Text("Privé")
+        return
+    }
+    val friendRepository = remember { FriendRepository.create() }
+    val groupRepository = remember { GroupRepository.create() }
+    val names by produceState(initialValue = "…", friendIds, groupIds) {
+        val allFriends = runCatching { friendRepository.listFriends() }.getOrDefault(emptyList())
+        val friendNames = friendIds.mapNotNull { id -> allFriends.firstOrNull { it.uid == id }?.displayName }
+        val groupNames = groupIds.map { runCatching { groupRepository.getGroupName(it) }.getOrDefault(it.take(6)) }
+        value = (friendNames + groupNames).joinToString(", ")
+    }
+    Text("Partagé avec : $names")
 }

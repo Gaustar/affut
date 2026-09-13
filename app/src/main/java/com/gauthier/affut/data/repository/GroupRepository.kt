@@ -42,6 +42,9 @@ class GroupRepository(
      * groupe en une liste d'UID au moment où un spot/une position est enregistré(e). */
     suspend fun listMemberUids(groupId: String): List<String> = remoteDataSource.listMemberUids(groupId)
 
+    suspend fun getGroupName(groupId: String): String =
+        remoteDataSource.getGroup(groupId)?.name ?: groupId.take(6)
+
     /** Aplatit une portée de partage (amis + groupes) en une simple liste d'UID, dénormalisée
      * au moment de l'enregistrement. Un membre qui quitte un groupe après coup ne perd pas
      * rétroactivement l'accès aux spots déjà partagés — limite connue, acceptée pour rester
